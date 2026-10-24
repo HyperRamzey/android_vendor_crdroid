@@ -146,8 +146,9 @@ KERNEL_MAKE_FLAGS += \
     KBUILD_BUILD_USER="build-user" \
     KBUILD_BUILD_HOST="build-host"
 
-# Add back threads, ninja cuts this to $(getconf _NPROCESSORS_ONLN)/2
-KERNEL_MAKE_FLAGS += -j$(shell getconf _NPROCESSORS_ONLN)
+# Ninja cuts this to $(getconf _NPROCESSORS_ONLN)/2. Honour KERNEL_JOBS when the
+# host is memory-constrained (large kernel trees at -jN can exhaust RAM).
+KERNEL_MAKE_FLAGS += -j$(if $(KERNEL_JOBS),$(KERNEL_JOBS),$(shell getconf _NPROCESSORS_ONLN))
 
 TOOLS_PATH_OVERRIDE := \
     HIP_PATH=none PERL5LIB=$(BUILD_TOP)/prebuilts/tools-lineage/common/perl-base
@@ -256,6 +257,15 @@ else
     KERNEL_MAKE_FLAGS += HOSTLDFLAGS="$(KERNEL_HOST_C_LD_FLAGS_SYSROOT) -Wl,-rpath,$(BUILD_TOP)/prebuilts/kernel-build-tools/linux-x86/lib64 -L $(BUILD_TOP)/prebuilts/kernel-build-tools/linux-x86/lib64 -fuse-ld=lld --rtlib=compiler-rt"
 
     TOOLS_PATH_OVERRIDE += PATH=$(BUILD_TOP)/prebuilts/tools-lineage/$(HOST_PREBUILT_TAG)/bin:$(BUILD_TOP)/prebuilts/build-tools/$(HOST_PREBUILT_TAG)/bin:$(TARGET_KERNEL_CLANG_PATH)/bin:$(BUILD_TOP)/prebuilts/rust/$(HOST_PREBUILT_TAG)/$(TARGET_KERNEL_RUST_VERSION)/bin:$(BUILD_TOP)/prebuilts/clang-tools/$(HOST_PREBUILT_TAG)/bin:$$PATH
+
+    # Pin kbuild host tools to stock AOSP clang. TARGET_KERNEL_CLANG_PATH may
+    # point at a kernel-only toolchain (Neutron) that cannot build host
+    # binaries against the glibc-2.17 sysroot (fixdep Error 139 segfault).
+    KERNEL_HOST_TOOLS := $(BUILD_TOP)/prebuilts/clang/host/linux-x86/clang-r563880c/bin
+    KERNEL_MAKE_FLAGS += HOSTCC=$(KERNEL_HOST_TOOLS)/clang
+    KERNEL_MAKE_FLAGS += HOSTCXX=$(KERNEL_HOST_TOOLS)/clang++
+    KERNEL_MAKE_FLAGS += HOSTAR=$(KERNEL_HOST_TOOLS)/llvm-ar
+    KERNEL_MAKE_FLAGS += HOSTLD=$(KERNEL_HOST_TOOLS)/ld.lld
 endif
 
 # Set DTBO image locations so the build system knows to build them
