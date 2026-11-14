@@ -14,10 +14,17 @@ PRODUCT_PRODUCT_PROPERTIES += \
     ro.config.alarm_alert=Hassium.ogg
 
 # Apps
+# Gallery2 (the AOSP stock gallery) is not shipped on crDroid a30s: Google Photos is
+# the photos/gallery app there and two galleries in the image just produce duplicate
+# VIEW-intent choosers. Removing the name here, rather than filtering PRODUCT_PACKAGES
+# in the device config, is what actually works: a
+#   PRODUCT_PACKAGES := $(filter-out Gallery2,$(PRODUCT_PACKAGES))
+# at the end of device/samsung/a30s/lineage_a30s.mk left system/product/app/Gallery2/Gallery2.apk
+# in out/soong/installs-lineage_a30s.mk and in the built system image (measured
+# 2026-10-31). Details: docs/projects/PHOTOS-APP.md.
 PRODUCT_PACKAGES += \
     AvatarPicker \
     Backgrounds \
-    Gallery2 \
     Glimpse \
     LatinIME
 
