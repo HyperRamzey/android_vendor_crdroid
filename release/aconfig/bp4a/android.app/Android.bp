@@ -1,0 +1,11 @@
+// aconfig package android.app (frameworks/base/core/java/android/app/activity_manager.aconfig)
+//
+// Picked up by vendor/lineage/release/aconfig/bp4a/Android.bp, whose srcs glob is
+// "*/Android.bp" — so this package needs no edit to any existing file.
+aconfig_values {
+    name: "aconfig-values-lineage-bp4a-android.app-all",
+    package: "android.app",
+    srcs: [
+        "*.textproto",
+    ],
+}

@@ -1,0 +1,36 @@
+# device_samsung_a30s#11.3 — the preloaded AOSP Dialer's phone-call FGS is denied and it
+# crash-loops (9x, java.lang.SecurityException: Starting FGS with type phoneCall ...) while
+# Telecom has it bound as the InCallService.
+#
+# ForegroundServiceTypePolicy.java (PREFIX_PHONE_CALL, :345-364) requires
+# FOREGROUND_SERVICE_PHONE_CALL and any of MANAGE_OWN_CALLS / ROLE_DIALER /
+# SystemDialerPermission. The SystemDialerPermission clause is the one written for an
+# OEM-preloaded dialer and it starts with
+#     if (!android.app.Flags.systemDialerPhoneCallFgsGrant()) return PERMISSION_DENIED;
+# (ForegroundServiceTypePolicy.java:1328-1330). MANAGE_OWN_CALLS is
+# protectionLevel="normal" and packages/apps/Dialer does not request it, and ROLE_DIALER
+# belongs to the user's chosen (Google) dialer, so this flag is the only clause that can
+# answer ALLOWED for the preloaded InCallService.
+#
+# Upstream ships exactly this value, only in trunk_staging
+# (build/release/aconfig/trunk_staging/android.app/system_dialer_phone_call_fgs_grant_flag_values.textproto):
+# the flag is a PURPOSE_BUGFIX (bug 425971621) and its declaration in
+# frameworks/base/core/java/android/app/activity_manager.aconfig:125 carries no state.
+# bp4a has no value, so the flag was not even present in the built aconfig_flags.pb
+# (verified on the installed v0.8.0-class image: 0 occurrences in
+# /system/etc/aconfig_flags.pb, 0 rows in `aflags list`).
+#
+# READ_ONLY, not upstream's READ_WRITE: bp4a is a released config and sets
+# RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY=true (and RELEASE_ACONFIG_FLAG_DEFAULT_PERMISSION
+# READ_ONLY), so aconfig is invoked with `--allow-read-write false` and refuses a
+# read-write flag outright — measured, the build dies with
+#   "Error: failed to create cache / flag system_dialer_phone_call_fgs_grant has
+#    permission READ_WRITE, but allow_read_write is false"
+# before any codegen runs. Read-only is also the correct posture for a shipped value: the
+# flag is ENABLED at compile time, so no runtime override is needed.
+flag_value {
+  package: "android.app"
+  name: "system_dialer_phone_call_fgs_grant"
+  state: ENABLED
+  permission: READ_ONLY
+}
